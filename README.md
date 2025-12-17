@@ -198,6 +198,33 @@ Or stop them individually:
 - Check Node.js version: `node --version` (should be v14 or higher)
 - Review application logs for specific errors
 
+### LevelDB/IndexedDB lock error
+
+If you see an error like `Failed to open LevelDB database: File currently in use`:
+
+This usually means another instance of the application is already running or a previous instance didn't close properly. The startup script (`start.sh`) automatically handles this, but if you're starting manually:
+
+**macOS:**
+```bash
+# Kill any existing Electron processes
+pkill -f "electron.*app"
+
+# Remove stale lock file (if needed)
+rm -f ~/Library/Application\ Support/app/IndexedDB/file__0.indexeddb.leveldb/LOCK
+```
+
+**Linux:**
+```bash
+pkill -f "electron.*app"
+rm -f ~/.config/app/IndexedDB/file__0.indexeddb.leveldb/LOCK
+```
+
+**Windows:**
+```powershell
+taskkill /F /IM electron.exe
+# Then manually delete: %APPDATA%\app\IndexedDB\file__0.indexeddb.leveldb\LOCK
+```
+
 ## Available Models
 
 The application uses the following Ollama models:

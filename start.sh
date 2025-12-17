@@ -72,6 +72,23 @@ done
 
 echo "✅ Server is running (PID: $SERVER_PID)"
 
+echo "🔍 Checking for existing application instances..."
+EXISTING_ELECTRON=$(pgrep -f "electron.*app" || true)
+if [ -n "$EXISTING_ELECTRON" ]; then
+    echo "⚠️  Found existing Electron processes. Stopping them to prevent database lock errors..."
+    pkill -f "electron.*app" || true
+    sleep 2
+fi
+
+APP_DATA_DIR="$HOME/Library/Application Support/app"
+if [ -d "$APP_DATA_DIR" ]; then
+    LOCK_FILE="$APP_DATA_DIR/IndexedDB/file__0.indexeddb.leveldb/LOCK"
+    if [ -f "$LOCK_FILE" ]; then
+        echo "⚠️  Found stale lock file. Removing it..."
+        rm -f "$LOCK_FILE"
+    fi
+fi
+
 echo "🖥️  Starting application..."
 cd app
 npm start &
