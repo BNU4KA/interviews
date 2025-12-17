@@ -48,6 +48,10 @@ ollama list
 Install dependencies for both the server and the application:
 
 ```bash
+# Install all dependencies at once
+npm run install:all
+
+# Or install manually:
 # Install server dependencies
 cd server
 npm install
@@ -75,7 +79,31 @@ curl http://localhost:11434/api/tags
 
 ## Running the Application
 
-### Start the Node.js Server
+### Quick Start (Recommended)
+
+Use the provided startup script to launch everything automatically:
+
+```bash
+./start.sh
+```
+
+Or using npm:
+
+```bash
+npm start
+```
+
+This script will:
+1. Check if Ollama is installed and running (start it if needed)
+2. Verify required models are installed (pull them if missing)
+3. Start the Node.js server
+4. Start the Electron application
+
+### Manual Start
+
+If you prefer to start services manually:
+
+#### Start the Node.js Server
 
 Open a terminal and navigate to the server directory:
 
@@ -86,7 +114,7 @@ npm start
 
 The server will start on port 3000 (or the port specified in the `PORT` environment variable).
 
-### Start the Application
+#### Start the Application
 
 Open another terminal and navigate to the app directory:
 
@@ -98,6 +126,16 @@ npm start
 This will launch the Electron application.
 
 ## Usage
+
+### Using the startup script:
+
+```bash
+./start.sh
+# or
+npm start
+```
+
+### Manual steps:
 
 1. Make sure Ollama is running (`ollama serve`)
 2. Start the Node.js server (`cd server && npm start`)
@@ -111,8 +149,23 @@ This will launch the Electron application.
 interviews/
 ├── app/          # Electron application (frontend)
 ├── server/       # Node.js server (backend)
+├── start.sh      # Startup script for all services
+├── package.json  # Root package.json with npm scripts
 └── README.md     # This file
 ```
+
+## Stopping Services
+
+To stop all running services:
+
+```bash
+pkill -f 'ollama serve|node.*server.js|electron'
+```
+
+Or stop them individually:
+- Ollama: `pkill -f 'ollama serve'` or press `Ctrl+C` in the terminal where it's running
+- Server: `pkill -f 'node.*server.js'` or press `Ctrl+C` in the server terminal
+- App: Close the Electron application window
 
 ## Troubleshooting
 
