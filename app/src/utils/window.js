@@ -37,6 +37,7 @@ function createWindow(sendToRenderer, randomNames = null) {
         transparent: true,
         hasShadow: false,
         alwaysOnTop: true,
+        show: false,
         skipTaskbar: true,
         hiddenInMissionControl: true,
         webPreferences: {
@@ -75,9 +76,15 @@ function createWindow(sendToRenderer, randomNames = null) {
         mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
     }
 
-    mainWindow.show();
-
     mainWindow.loadFile(path.join(__dirname, '../index.html'));
+
+    // Show window when ready
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.moveTop();
+        console.log('Window ready-to-show: showing window');
+    });
 
     // Set window title to random name if provided
     if (randomNames && randomNames.windowTitle) {
@@ -87,15 +94,26 @@ function createWindow(sendToRenderer, randomNames = null) {
 
     // Ensure window is shown after content loads
     mainWindow.webContents.once('did-finish-load', () => {
-        if (!mainWindow.isVisible()) {
-            mainWindow.show();
-        }
-        mainWindow.focus();
-        console.log('Window shown and focused');
+        setTimeout(() => {
+            if (!mainWindow.isVisible()) {
+                mainWindow.show();
+                mainWindow.focus();
+                mainWindow.moveTop();
+                console.log('Window shown and focused after content load');
+            }
+        }, 100);
     });
 
-    // Apply stealth measures
+    // Apply stealth measures (but ensure window is still visible)
     applyStealthMeasures(mainWindow);
+    
+    // Ensure window is visible after stealth measures
+    setTimeout(() => {
+        if (!mainWindow.isVisible()) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    }, 100);
 
     // Start periodic title randomization for additional stealth
     startTitleRandomization(mainWindow);
