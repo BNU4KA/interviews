@@ -4,6 +4,7 @@
   "description": "AI-powered interview assistant",
   "scripts": {
     "start": "./start.sh",
+    "stop": "./stop.sh",
     "start:server": "cd server && npm start",
     "start:app": "cd app && npm start",
     "install:all": "cd server && npm install && cd ../app && npm install",

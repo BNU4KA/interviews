@@ -151,23 +151,49 @@ interviews/
 ├── app/          # Electron application (frontend)
 ├── server/       # Node.js server (backend)
 ├── start.sh      # Startup script for all services
+├── stop.sh       # Stop script for all services
 ├── package.json  # Root package.json with npm scripts
 └── README.md     # This file
 ```
 
 ## Stopping Services
 
-To stop all running services:
+To stop all running services, use the provided stop script:
 
 ```bash
-pkill -f 'ollama serve|node.*server.js|electron'
+./stop.sh
 ```
+
+Or using npm:
+
+```bash
+npm run stop
+```
+
+This script will:
+- Stop all Ollama processes
+- Stop the Node.js server
+- Stop all Electron application processes
+- Clean up stale lock files
+
+### Manual Stop
 
 Or stop them individually:
 
 - Ollama: `pkill -f 'ollama serve'` or press `Ctrl+C` in the terminal where it's running
 - Server: `pkill -f 'node.*server.js'` or press `Ctrl+C` in the server terminal
 - App: Close the Electron application window
+
+### Force Stop
+
+If processes don't stop normally, force kill them:
+
+```bash
+pkill -9 -f 'ollama serve'
+pkill -9 -f 'node.*server.js'
+pkill -9 -f 'electron.*app'
+pkill -9 -f 'electron-forge'
+```
 
 ## Troubleshooting
 
@@ -205,6 +231,7 @@ If you see an error like `Failed to open LevelDB database: File currently in use
 This usually means another instance of the application is already running or a previous instance didn't close properly. The startup script (`start.sh`) automatically handles this, but if you're starting manually:
 
 **macOS:**
+
 ```bash
 # Kill any existing Electron processes
 pkill -f "electron.*app"
@@ -214,12 +241,14 @@ rm -f ~/Library/Application\ Support/app/IndexedDB/file__0.indexeddb.leveldb/LOC
 ```
 
 **Linux:**
+
 ```bash
 pkill -f "electron.*app"
 rm -f ~/.config/app/IndexedDB/file__0.indexeddb.leveldb/LOCK
 ```
 
 **Windows:**
+
 ```powershell
 taskkill /F /IM electron.exe
 # Then manually delete: %APPDATA%\app\IndexedDB\file__0.indexeddb.leveldb\LOCK
