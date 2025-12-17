@@ -17,8 +17,9 @@ OLLAMA_PID=""
 echo "🔍 Checking if Ollama is running..."
 if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
     echo "🔄 Starting Ollama server..."
-    ollama serve > /dev/null 2>&1 &
+    nohup ollama serve > /dev/null 2>&1 &
     OLLAMA_PID=$!
+    disown $OLLAMA_PID 2>/dev/null || true
     echo "⏳ Waiting for Ollama to start..."
     sleep 3
     
@@ -56,8 +57,9 @@ fi
 
 echo "🌐 Starting Node.js server..."
 cd server
-npm start > ../server.log 2>&1 &
+nohup npm start > ../server.log 2>&1 &
 SERVER_PID=$!
+disown $SERVER_PID 2>/dev/null || true
 cd ..
 
 echo "⏳ Waiting for server to start..."
@@ -90,10 +92,10 @@ if [ -d "$APP_DATA_DIR" ]; then
 fi
 
 echo "🖥️  Starting application..."
-cd app
-npm start &
+(cd app && nohup npm start > ../app.log 2>&1 &)
 APP_PID=$!
-cd ..
+sleep 3
+APP_PID=$(pgrep -f "electron-forge start" | head -1 || pgrep -f "electron.*app" | head -1 || echo "$APP_PID")
 
 echo ""
 echo "✅ All services started successfully!"
@@ -109,9 +111,10 @@ echo "   App:    $APP_PID"
 echo ""
 echo "📝 Logs:"
 echo "   Server logs: tail -f server.log"
+echo "   App logs:    tail -f app.log"
 echo ""
-echo "🛑 To stop all services, run: pkill -f 'ollama serve|node.*server.js|electron'"
+echo "🛑 To stop all services, run: ./stop.sh or npm run stop"
 echo ""
-echo "💡 The application is now running. Close this terminal or press Ctrl+C to exit."
-echo "   (Note: Services will continue running in the background)"
+echo "💡 The application is now running in the background."
+echo "   You can close this terminal - services will continue running."
 echo ""
