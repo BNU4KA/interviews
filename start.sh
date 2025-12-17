@@ -118,3 +118,5 @@ echo ""
 echo "💡 The application is now running in the background."
 echo "   You can close this terminal - services will continue running."
 echo ""
+
+exit 0
