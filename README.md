@@ -13,16 +13,19 @@ An AI-powered interview assistant application that helps solve coding problems u
 ### Step 1: Install Ollama
 
 #### macOS
+
 ```bash
 brew install ollama
 ```
 
 #### Linux
+
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
 #### Windows
+
 Download the installer from [ollama.com](https://ollama.com)
 
 ### Step 2: Install Ollama Models
@@ -35,6 +38,7 @@ ollama pull llava:7b
 ```
 
 Verify that the models are installed:
+
 ```bash
 ollama list
 ```
@@ -64,6 +68,7 @@ ollama serve
 The Ollama server will run on `http://localhost:11434` by default.
 
 Verify that Ollama is running:
+
 ```bash
 curl http://localhost:11434/api/tags
 ```
@@ -112,11 +117,13 @@ interviews/
 ## Troubleshooting
 
 ### Ollama server is not available
+
 - Make sure `ollama serve` is running
 - Check that port 11434 is not occupied
 - Verify Ollama installation: `ollama --version`
 
 ### Model not found
+
 - Pull the required models:
   ```bash
   ollama pull deepseek-coder:6.7b
@@ -125,11 +132,13 @@ interviews/
 - Check available models: `ollama list`
 
 ### Server connection errors
+
 - Ensure the server is running on port 3000
 - Check that no other application is using port 3000
 - Verify server logs for error messages
 
 ### Application won't start
+
 - Make sure all dependencies are installed (`npm install` in both `app` and `server` directories)
 - Check Node.js version: `node --version` (should be v14 or higher)
 - Review application logs for specific errors
@@ -137,6 +146,7 @@ interviews/
 ## Available Models
 
 The application uses the following Ollama models:
+
 - `deepseek-coder:6.7b` - For code generation and problem solving
 - `llava:7b` - For vision/image analysis tasks
 
