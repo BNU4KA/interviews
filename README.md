@@ -94,6 +94,7 @@ npm start
 ```
 
 This script will:
+
 1. Check if Ollama is installed and running (start it if needed)
 2. Verify required models are installed (pull them if missing)
 3. Start the Node.js server
@@ -163,6 +164,7 @@ pkill -f 'ollama serve|node.*server.js|electron'
 ```
 
 Or stop them individually:
+
 - Ollama: `pkill -f 'ollama serve'` or press `Ctrl+C` in the terminal where it's running
 - Server: `pkill -f 'node.*server.js'` or press `Ctrl+C` in the server terminal
 - App: Close the Electron application window
