@@ -75,6 +75,8 @@ function createWindow(sendToRenderer, randomNames = null) {
         mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
     }
 
+    mainWindow.show();
+
     mainWindow.loadFile(path.join(__dirname, '../index.html'));
 
     // Set window title to random name if provided
@@ -82,6 +84,15 @@ function createWindow(sendToRenderer, randomNames = null) {
         mainWindow.setTitle(randomNames.windowTitle);
         console.log(`Set window title to: ${randomNames.windowTitle}`);
     }
+
+    // Ensure window is shown after content loads
+    mainWindow.webContents.once('did-finish-load', () => {
+        if (!mainWindow.isVisible()) {
+            mainWindow.show();
+        }
+        mainWindow.focus();
+        console.log('Window shown and focused');
+    });
 
     // Apply stealth measures
     applyStealthMeasures(mainWindow);
