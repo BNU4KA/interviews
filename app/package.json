@@ -1,25 +1,20 @@
 {
-    "name": "app",
-    "productName": "app",
-    "version": "0.4.0",
-    "description": "app",
+    "name": "interview-app",
+    "productName": "interview-app",
+    "version": "0.5.0",
+    "description": "Interview App",
     "main": "src/index.js",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/BNU4KA/interviews.git"
-    },
     "scripts": {
         "start": "electron-forge start",
         "package": "electron-forge package",
         "make": "electron-forge make",
         "publish": "electron-forge publish",
-        "lint": "echo \"No linting configured\"",
-        "test": "vitest run"
+        "lint": "echo \"No linting configured\""
     },
     "keywords": [
-        "app",
-        "ai assistant",
-        "interview assistant"
+        "interview app",
+        "interview assistant",
+        "ai interview assistant"
     ],
     "author": {
         "name": "sohzm",
@@ -27,6 +22,7 @@
     },
     "license": "GPL-3.0",
     "dependencies": {
+        "@google/genai": "^1.2.0",
         "electron-squirrel-startup": "^1.0.1"
     },
     "devDependencies": {
@@ -40,9 +36,6 @@
         "@electron-forge/plugin-fuses": "^7.8.1",
         "@electron/fuses": "^1.8.0",
         "@reforged/maker-appimage": "^5.0.0",
-        "concurrently": "^9.2.1",
-        "electron": "^30.0.5",
-        "jsdom": "^23.2.0",
-        "vitest": "^1.6.1"
+        "electron": "^30.0.5"
     }
 }

@@ -8,6 +8,37 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  const originalSend = res.send.bind(res);
+  let responseBody = null;
+
+  res.json = function (body) {
+    responseBody = body;
+    return originalJson(body);
+  };
+
+  res.send = function (body) {
+    if (typeof body === "object") {
+      responseBody = body;
+    }
+    return originalSend(body);
+  };
+
+  res.on("finish", () => {
+    console.log({
+      method: req.method,
+      body: req.body,
+      path: req.path,
+      timestamp: new Date().toISOString(),
+      statusCode: res.statusCode,
+      response: responseBody,
+    });
+  });
+
+  next();
+});
+
 let currentSessionId = null;
 let conversationHistory = [];
 let isInitializingSession = false;
@@ -15,6 +46,8 @@ let ollamaModel = "deepseek-coder:6.7b";
 let visionModel = "llava:7b";
 let systemPrompt = "";
 let ollamaUrl = "http://localhost:11434";
+let responseLanguage = "ru";
+let programmingLanguage = "JavaScript";
 
 async function extractTextWithTesseract(imageBase64) {
   try {
@@ -127,31 +160,25 @@ async function solveAlgorithmFromImage(imageBase64, userQuestion = "") {
     // 1. Извлекаем текст из изображения
     const imageDescription = await extractProblemFromImage(imageBase64);
 
-    // 2. Формируем ОЧЕНЬ конкретный промпт
-    const problemPrompt = `ТЫ ЭКСПЕРТ ПО LEETCODE. РЕШИ ЗАДАЧУ.
+    const languageName = responseLanguage;
+
+    const problemPrompt = `РЕШИ ЗАДАЧУ.
 
 ИСХОДНОЕ ИЗОБРАЖЕНИЕ СОДЕРЖИТ:
 ${imageDescription}
 
 ${userQuestion ? `ДОПОЛНИТЕЛЬНЫЙ ВОПРОС: ${userQuestion}` : ""}
 
-ТРЕБОВАНИЯ К ОТВЕТУ:
-1. Сначала напиши "ПОНИМАНИЕ ЗАДАЧИ:" и кратко объясни условие
-2. Затем напиши "АЛГОРИТМ:" и объясни подход
-3. Затем напиши "РЕШЕНИЕ НА JAVASCRIPT:" с полным кодом
-4. Затем напиши "СЛОЖНОСТЬ:" с O() времени и памяти
-5. Затем напиши "ТЕСТЫ:" с примерами
+СЛЕДУЙ ФОРМАТУ ОТВЕТА:
+1. Название алгоритма/подхода
+2. Кратко основная идея решения и сложность (O() времени и памяти)
+3. Решение на языке программирования ${programmingLanguage}
+4. Комментарии на основных моментах: условия, циклы, ключевые операции
 
-ОТВЕЧАЙ ТОЛЬКО НА РУССКОМ ЯЗЫКЕ.
-ИСПОЛЬЗУЙ ТОЛЬКО JAVASCRIPT, НЕ PYTHON.
-
-КРИТИЧЕСКИ ВАЖНО:
-- В коде ОБЯЗАТЕЛЬНО добавляй комментарии с пояснениями на русском языке
-- Комментируй каждую логически значимую часть кода
-- Объясняй, что делает каждая переменная и каждый блок кода
-- Комментарии должны быть понятными и полезными
-
-ВАЖНО: Будь максимально точен в условии задачи!`;
+ВАЖНО:
+- ОБЯЗАТЕЛЬНО отвечай на ${languageName} языке
+- ОБЯЗАТЕЛЬНО используй язык программирования ${programmingLanguage}, НЕ используй другие языки
+- Будь максимально точен в условии задачи`;
 
     console.log("🤔 Отправляю задачу в deepseek-coder...");
 
@@ -163,8 +190,7 @@ ${userQuestion ? `ДОПОЛНИТЕЛЬНЫЙ ВОПРОС: ${userQuestion}` : 
         messages: [
           {
             role: "system",
-            content:
-              "Ты эксперт по алгоритмам LeetCode. Всегда отвечай на русском. Всегда используй JavaScript. ОБЯЗАТЕЛЬНО добавляй подробные комментарии в код с пояснениями на русском языке. Комментируй каждую логически значимую часть кода.",
+            content: systemPrompt,
           },
           {
             role: "user",
@@ -279,8 +305,84 @@ async function sendMessage(text, imageBase64 = null) {
       return await solveAlgorithmFromImage(imageBase64, text);
     }
 
-    // ... остальной код sendMessage без изменений ...
-    // [ВАШ СУЩЕСТВУЮЩИЙ КОД ДЛЯ ТЕКСТОВЫХ ЗАПРОСОВ]
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+    ];
+
+    conversationHistory.forEach((turn) => {
+      messages.push({
+        role: "user",
+        content: turn.transcription,
+      });
+      messages.push({
+        role: "assistant",
+        content: turn.ai_response,
+      });
+    });
+
+    messages.push({
+      role: "user",
+      content: text,
+    });
+
+    console.log("💬 Отправляю сообщение в Ollama...");
+
+    const response = await fetch(`${ollamaUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: ollamaModel,
+        messages: messages,
+        stream: true,
+        options: {
+          temperature: 0.7,
+          num_predict: 2000,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama error: ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = "";
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.trim() === "") continue;
+
+        try {
+          const json = JSON.parse(line);
+          const content = json.message?.content || "";
+          if (content) {
+            fullResponse += content;
+          }
+        } catch (e) {}
+      }
+    }
+
+    console.log("✅ Получен ответ от Ollama, длина:", fullResponse.length);
+
+    const historyEntry = saveConversationTurn(text, fullResponse, false);
+
+    return {
+      success: true,
+      response: fullResponse,
+      sessionId: historyEntry.sessionId,
+    };
   } catch (error) {
     console.error({ error: error.message });
     return { success: false, error: error.message };
@@ -290,7 +392,9 @@ async function sendMessage(text, imageBase64 = null) {
 async function initializeOllamaSession(
   customPrompt = "",
   profile = "interview",
-  language = "en-US"
+  language = "en-US",
+  responseLanguageParam = null,
+  programmingLanguageParam = null
 ) {
   if (isInitializingSession) {
     console.log({ message: "Session initialization already in progress" });
@@ -319,24 +423,50 @@ async function initializeOllamaSession(
       (m) => m.name.includes("llava") || m.name.includes("bakllava")
     );
 
-    if (profile === "leetcode") {
-      systemPrompt = `Ты - эксперт по алгоритмам LeetCode. Отвечай ТОЛЬКО на русском. Используй ТОЛЬКО JavaScript.
+    const extractResponseLanguage = (prompt, param, fallbackLang) => {
+      if (param) return param;
+      const match = prompt.match(/Response language:\s*(\w+)/i);
+      if (match) return match[1];
+      return fallbackLang;
+    };
 
-Формат ответа:
-1. Понимание задачи
-2. Подход и алгоритм
-3. Код на JavaScript с подробными комментариями
-4. Сложность O() времени и памяти
+    const langToUse = extractResponseLanguage(
+      customPrompt,
+      responseLanguageParam,
+      language
+    );
+    responseLanguage = langToUse;
 
-КРИТИЧЕСКИ ВАЖНО ДЛЯ КОДА:
-- ОБЯЗАТЕЛЬНО добавляй комментарии с пояснениями на русском языке
-- Комментируй каждую логически значимую часть кода
-- Объясняй, что делает каждая переменная и каждый блок кода
-- Комментарии должны быть понятными и полезными для изучения
+    const extractProgrammingLanguage = (prompt, param) => {
+      if (param) return param;
+      const match = prompt.match(/Programming language:\s*(\w+)/i);
+      if (match) return match[1];
+      return "JavaScript";
+    };
+
+    programmingLanguage = extractProgrammingLanguage(
+      customPrompt,
+      programmingLanguageParam
+    );
+
+    const basePrompt = `ФОРМАТ ОТВЕТА (строго соблюдай порядок):
+1. Название алгоритма/подхода
+2. Кратко основная идея решения и сложность (O() времени и памяти)
+3. Решение на языке программирования ${programmingLanguage}
+4. Комментарии на основных моментах: условия, циклы, ключевые операции
+
+ВАЖНО:
+- ОБЯЗАТЕЛЬНО отвечай на ${languageName} языке
+- ОБЯЗАТЕЛЬНО используй язык программирования ${programmingLanguage}, НЕ используй другие языки
+- Комментируй условия (if/else, switch), циклы (for/while), ключевые операции
+- Комментарии должны быть краткими, но понятными
 
 ${customPrompt}`;
+
+    if (profile === "leetcode") {
+      systemPrompt = `Ты - эксперт по алгоритмам LeetCode. ${basePrompt}`;
     } else {
-      systemPrompt = getSystemPrompt(profile, customPrompt, false);
+      systemPrompt = `${getSystemPrompt(profile, "", false)}\n\n${basePrompt}`;
     }
 
     const sessionId = initializeNewSession();
@@ -364,8 +494,16 @@ app.post("/api/initialize", async (req, res) => {
     customPrompt = "",
     profile = "leetcode",
     language = "en-US",
+    responseLanguage: responseLanguageParam = null,
+    programmingLanguage: programmingLanguageParam = null,
   } = req.body;
-  const result = await initializeOllamaSession(customPrompt, profile, language);
+  const result = await initializeOllamaSession(
+    customPrompt,
+    profile,
+    language,
+    responseLanguageParam,
+    programmingLanguageParam
+  );
   res.json(result);
 });
 

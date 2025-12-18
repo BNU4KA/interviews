@@ -1,6 +1,6 @@
 # Repo Guidelines
 
-This repository is based on [`cheating-daddy`](https://github.com/sohzm/cheating-daddy).
+This repository is a fork of [`cheating-daddy`](https://github.com/sohzm/cheating-daddy).
 It provides an Electron-based real‑time assistant which captures screen and audio
 for contextual AI responses. The code is JavaScript and uses Electron Forge for
 packaging.
@@ -59,7 +59,8 @@ merging upstream changes.
 
 ## Merging upstream PRs
 
-This repository is now independent. When merging changes:
+Pull requests from <https://github.com/sohzm/cheating-daddy> are commonly
+cherry‑picked here. When merging:
 
 1. Inspect the diff and keep commit messages short (`feat:` / `fix:` etc.).
 2. After merging, run the application locally to verify it still builds and
